@@ -80,9 +80,10 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
             while (responseNodes.MoveNext())
             {
                 var code = responseNodes.Current.GetAttribute("code", "");
-                var response = responses.ContainsKey(code)
-                    ? responses[code]
-                    : responses[code] = new Response();
+
+                Response response;
+                if (!responses.TryGetValue(code, out response))
+                    responses[code] = response = new Response();
 
                 response.Description = XmlCommentsTextHelper.Humanize(responseNodes.Current.InnerXml);
             }
@@ -98,7 +99,13 @@ namespace Swashbuckle.AspNetCore.SwaggerGen
             {
                 // Check for a corresponding  API parameter (from ApiExplorer) that's property-bound?
                 var propertyParam = apiDescription.ParameterDescriptions
-                    .Where(p => p.ModelMetadata?.ContainerType != null && p.ModelMetadata?.PropertyName != null)
+                    .Where(p =>
+                    {
+                        var modelMetadata = p.ModelMetadata;
+                        return modelMetadata != null
+                            && modelMetadata.ContainerType != null
+                            && modelMetadata.PropertyName != null;
+                    })
                     .FirstOrDefault(p => parameter.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase));
                 if (propertyParam == null) continue;
 
